@@ -120,27 +120,6 @@ AI-powered categorization identifies:
 - **Accessibility**: ARIA labels, keyboard navigation, screen reader support
 - **Real-time Feedback**: Progress indicators during AI processing
 
-## Architecture
-
-\`\`\`
-src/
-├── app/
-│   ├── api/
-│   │   └── parse-syllabus/
-│   │       └── route.ts      # OpenAI API integration
-│   ├── page.tsx              # Main application component
-│   ├── layout.tsx            # Root layout with fonts and metadata
-│   └── globals.css           # Global styles and design tokens
-├── components/
-│   ├── file-upload.tsx       # Drag-and-drop file upload
-│   ├── syllabus-parser.tsx   # AI-powered parsing interface
-│   ├── calendar-view.tsx     # Monthly calendar display
-│   ├── task-list.tsx         # List view with filtering and sorting
-│   ├── google-calendar-sync.tsx # Google Calendar integration
-│   └── ui/                   # Reusable UI components
-└── lib/
-    └── utils.ts              # Utility functions
-\`\`\`
 
 ## Environment Variables
 
