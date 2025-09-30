@@ -49,7 +49,7 @@ export function GoogleCalendarSync({ events }: GoogleCalendarSyncProps) {
     return [
       "BEGIN:VCALENDAR",
       "VERSION:2.0",
-      "PRODID:-//Syllabus Calendar//EN",
+      "PRODID:-//SyllabusSync//EN",
       "CALSCALE:GREGORIAN",
       "METHOD:PUBLISH",
       icsEvents,
