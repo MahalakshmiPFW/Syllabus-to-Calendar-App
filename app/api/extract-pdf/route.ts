@@ -1,20 +1,22 @@
-import { type NextRequest, NextResponse } from "next/server"
-import OpenAI from "openai"
+// import { type NextRequest, NextResponse } from "next/server"
 
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    })
-  : null
+// export async function GET() {
+//   return NextResponse.json({ message: "PDF endpoint is working" })
+// }
+
+// export async function POST(request: NextRequest) {
+//   return NextResponse.json({ message: "PDF POST is working" })
+// }
+
+import { type NextRequest, NextResponse } from "next/server"
+import { GoogleGenerativeAI } from "@google/generative-ai"
 
 export async function POST(request: NextRequest) {
   try {
-    if (!openai) {
+    if (!process.env.GOOGLE_API_KEY) {
       return NextResponse.json(
-        {
-          error: "OpenAI API key not configured. Please add OPENAI_API_KEY to your environment variables.",
-        },
-        { status: 500 },
+        { error: "Gemini API key not configured" },
+        { status: 500 }
       )
     }
 
@@ -25,102 +27,109 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
-    let extractedText = ""
+    // Convert to base64 and send directly to Gemini
+    const arrayBuffer = await file.arrayBuffer()
+    const base64 = Buffer.from(arrayBuffer).toString('base64')
 
-    if (file.type === "application/pdf") {
-      const arrayBuffer = await file.arrayBuffer()
-      const uint8Array = new Uint8Array(arrayBuffer)
-      const textDecoder = new TextDecoder("utf-8", { ignoreBOM: true })
+    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY)
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
-      // Convert to string and extract readable text
-      const rawContent = textDecoder.decode(uint8Array)
-      extractedText = extractReadableText(rawContent)
-    } else if (file.type === "text/plain") {
-      extractedText = await file.text()
-    } else {
-      return NextResponse.json({ error: "Unsupported file type. Please upload a PDF or text file." }, { status: 400 })
-    }
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          mimeType: "application/pdf",
+          data: base64
+        }
+      },
+      {
+        text: `You are extracting calendar events from a syllabus PDF.
 
-    if (!extractedText || extractedText.trim().length < 20) {
-      return NextResponse.json(
-        {
-          error:
-            "Could not extract sufficient text from the file. Please ensure the file contains readable text or try a different PDF.",
-        },
-        { status: 400 },
-      )
-    }
+STEP 1 - IDENTIFY THE SEMESTER AND YEAR:
+Look at the very beginning of the document for the semester/term and year (e.g., "Fall 2024", "Spring 2025", "Summer 2024").
+The year will typically be in the title, header, or first few lines of the syllabus.
+Remember this semester and year.
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: "system",
-          content: `You are a helpful assistant that extracts calendar events from syllabus text. 
-          Extract assignments, exams, readings, and due dates. 
-          Return ONLY a JSON array of events in this exact format:
-          [{"title": "Assignment 1 Due", "date": "2025-01-24", "type": "assignment", "description": "Brief description"}]
-          
-          Types should be: "assignment", "exam", "reading", or "other"
-          Dates must be in YYYY-MM-DD format. If year is missing, assume 2025.
-          If you cannot extract any events, return an empty array: []`,
-        },
-        {
-          role: "user",
-          content: `Extract calendar events from this syllabus:\n\n${extractedText.substring(0, 4000)}`,
-        },
-      ],
-      temperature: 0.1,
-      max_tokens: 2000,
-    })
+STEP 2 - DETERMINE THE DATE RANGE:
+Based on the semester identified:
+- Fall semester: August to December (of the identified year)
+- Spring semester: January to May (of the identified year)
+- Summer semester: June to August (of the identified year)
 
-    const aiResponse = completion.choices[0]?.message?.content?.trim()
+When you see dates like "September 15" or "Week 3" without a year, use the year from STEP 1 and place them in the appropriate semester timeframe.
 
-    if (!aiResponse) {
-      return NextResponse.json({ error: "Failed to get response from AI" }, { status: 500 })
-    }
+STEP 3 - EXTRACT EVENTS:
+Find all assignments, exams, readings, and important dates in the syllabus.
+For each event:
+- Use the year identified in STEP 1
+- Make sure the month makes sense for the semester (e.g., Fall 2024 events should be between August-December 2024)
+- For weekly assignments without specific dates, estimate based on the semester start date
 
-    let events = []
+STEP 4 - FORMAT THE OUTPUT:
+Return a JSON array of events with this exact format:
+[
+  {
+    "id": "unique_id",
+    "title": "Event title",
+    "date": "YYYY-MM-DD",
+    "type": "assignment|exam|reading|other",
+    "description": "Brief description"
+  }
+]
+
+CRITICAL RULES:
+- All dates MUST use the year from the syllabus header/title
+- Dates must be in YYYY-MM-DD format
+- Types must be one of: "assignment", "exam", "reading", or "other"
+- Events must fall within the correct semester months (Fall: Aug-Dec, Spring: Jan-May, Summer: Jun-Aug)
+- Return ONLY the JSON array, no other text or explanation
+
+Example: If the syllabus says "Fall 2024" at the top and mentions "Midterm in Week 7", estimate it would be around mid-October 2024, not February or any other incorrect month.`
+      }
+    ])
+
+    const aiResponse = result.response.text().trim()
+    console.log("Gemini response:", aiResponse.substring(0, 500))
+
+    let events
     try {
-      // Clean the response to ensure it's valid JSON
-      const cleanResponse = aiResponse.replace(/```json\n?|\n?```/g, "").trim()
-      events = JSON.parse(cleanResponse)
+      let cleanedResponse = aiResponse
+      if (cleanedResponse.startsWith("```json")) {
+        cleanedResponse = cleanedResponse.replace(/^```json\s*/, "").replace(/\s*```$/, "")
+      } else if (cleanedResponse.startsWith("```")) {
+        cleanedResponse = cleanedResponse.replace(/^```\s*/, "").replace(/\s*```$/, "")
+      }
 
+      events = JSON.parse(cleanedResponse)
+      
       if (!Array.isArray(events)) {
-        console.log("AI response was not an array:", cleanResponse)
-        events = []
+        return NextResponse.json({ error: "Invalid response format from AI" }, { status: 500 })
       }
     } catch (parseError) {
       console.error("Failed to parse AI response:", parseError)
-      console.log("AI response was:", aiResponse)
-      events = []
+      console.error("Raw AI response:", aiResponse)
+      return NextResponse.json({ error: "Failed to extract events from PDF" }, { status: 500 })
     }
 
-    return NextResponse.json({ events }, { status: 200 })
+    const formattedEvents = events.map((event: any, index: number) => {
+      // Parse the date and add one day to fix timezone offset
+      const eventDate = new Date(event.date)
+      eventDate.setDate(eventDate.getDate() + 1)
+      
+      return {
+        id: event.id || `event_${index + 1}`,
+        title: event.title || "Untitled Event",
+        date: eventDate,
+        type: event.type || "other",
+        description: event.description || "",
+      }
+    })
+
+    return NextResponse.json({ events: formattedEvents })
   } catch (error) {
-    console.error("Error processing file:", error)
+    console.error("Error processing PDF:", error)
     return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Failed to process file",
-      },
-      { status: 500 },
+      { error: error instanceof Error ? error.message : "Failed to process PDF" },
+      { status: 500 }
     )
   }
-}
-
-function extractReadableText(content: string): string {
-  // Remove binary data and keep only printable ASCII characters
-  let text = content.replace(/[^\x20-\x7E\n\r\t]/g, " ")
-
-  // Clean up multiple spaces and newlines
-  text = text.replace(/\s+/g, " ")
-
-  // Split into lines and filter for meaningful content
-  const lines = text.split(/[\n\r]+/)
-  const meaningfulLines = lines.filter((line) => {
-    const trimmed = line.trim()
-    return trimmed.length > 5 && /[a-zA-Z]/.test(trimmed)
-  })
-
-  return meaningfulLines.join("\n").trim()
 }

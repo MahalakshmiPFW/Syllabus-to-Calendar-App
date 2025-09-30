@@ -21,46 +21,6 @@ export function FileUpload({ onFileProcessed, isProcessing, setIsProcessing }: F
   const [textInput, setTextInput] = useState("")
   const [error, setError] = useState<string | null>(null)
 
-  const generateMockData = (): CalendarEvent[] => {
-    return [
-      {
-        id: "1",
-        title: "Assignment 1: Research Paper",
-        date: new Date(new Date("2025-02-15").getTime() + 24 * 60 * 60 * 1000),
-        type: "assignment",
-        description: "Submit 5-page research paper on contract law",
-      },
-      {
-        id: "2",
-        title: "Midterm Exam",
-        date: new Date(new Date("2025-03-10").getTime() + 24 * 60 * 60 * 1000),
-        type: "exam",
-        description: "Covers chapters 1-5",
-      },
-      {
-        id: "3",
-        title: "Reading: Chapter 6-8",
-        date: new Date(new Date("2025-02-20").getTime() + 24 * 60 * 60 * 1000),
-        type: "reading",
-        description: "Read assigned chapters before class",
-      },
-      {
-        id: "4",
-        title: "Final Project Due",
-        date: new Date(new Date("2025-04-25").getTime() + 24 * 60 * 60 * 1000),
-        type: "assignment",
-        description: "Complete final project presentation",
-      },
-      {
-        id: "5",
-        title: "Final Exam",
-        date: new Date(new Date("2025-05-05").getTime() + 24 * 60 * 60 * 1000),
-        type: "exam",
-        description: "Comprehensive final examination",
-      },
-    ]
-  }
-
   const handlePdfFile = async (file: File) => {
     if (!file.type.includes("pdf")) {
       setError("Please upload a PDF file")
@@ -69,13 +29,47 @@ export function FileUpload({ onFileProcessed, isProcessing, setIsProcessing }: F
 
     setError(null)
     setIsProcessing(true)
+    console.log("[v0] Starting PDF processing...")
 
-    // Simulate processing time
-    setTimeout(() => {
-      const mockEvents = generateMockData()
-      onFileProcessed(mockEvents)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/extract-pdf", {
+        method: "POST",
+        body: formData,
+      })
+
+      const data = await response.json()
+      console.log("[v0] API response:", data)
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to process PDF")
+      }
+
+      const events = data.events || []
+      console.log("[v0] Extracted events:", events)
+
+      if (events.length === 0) {
+        setError("No calendar events found in the PDF. Please ensure the PDF contains dates and assignments.")
+        setIsProcessing(false)
+        return
+      }
+
+      const processedEvents = events.map((event: any) => ({
+        ...event,
+        date: new Date(event.date),
+      }))
+      console.log("[v0] Processed events with dates:", processedEvents)
+
+      onFileProcessed(processedEvents)
+      console.log("[v0] Called onFileProcessed callback")
+    } catch (error) {
+      console.error("Error processing PDF:", error)
+      setError(error instanceof Error ? error.message : "Error processing PDF. Please try again.")
+    } finally {
       setIsProcessing(false)
-    }, 2000)
+    }
   }
 
   const handleTextSubmit = async () => {
@@ -115,7 +109,7 @@ export function FileUpload({ onFileProcessed, isProcessing, setIsProcessing }: F
 
       const processedEvents = events.map((event: any) => ({
         ...event,
-        date: new Date(new Date(event.date).getTime() + 24 * 60 * 60 * 1000),
+        date: new Date(event.date),
       }))
       console.log("[v0] Processed events with dates:", processedEvents)
 
@@ -176,7 +170,7 @@ export function FileUpload({ onFileProcessed, isProcessing, setIsProcessing }: F
               {isProcessing ? (
                 <div className="flex flex-col items-center gap-4">
                   <Loader2 className="h-12 w-12 text-primary animate-spin" />
-                  <p className="text-sm text-muted-foreground">Processing PDF and generating calendar events...</p>
+                  <p className="text-sm text-muted-foreground">Processing PDF and extracting calendar events with AI...</p>
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-4">
@@ -184,7 +178,7 @@ export function FileUpload({ onFileProcessed, isProcessing, setIsProcessing }: F
                   <div>
                     <h3 className="text-lg font-medium mb-2">Upload your syllabus PDF</h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                      We'll generate sample calendar events for demo purposes
+                      AI will extract assignments, exams, and important dates
                     </p>
                   </div>
                   <Button asChild>
