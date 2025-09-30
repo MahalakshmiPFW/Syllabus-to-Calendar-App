@@ -18,7 +18,7 @@ export function ListView({ events }: ListViewProps) {
   const [filterType, setFilterType] = useState<string>("all")
   const [sortBy, setSortBy] = useState<"date" | "type" | "title">("date")
 
-  // Filter events based on search term and type filter
+  // Filter events
   const filteredEvents = events.filter((event) => {
     const matchesSearch =
       event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -41,17 +41,18 @@ export function ListView({ events }: ListViewProps) {
     }
   })
 
-  // Group events by month for better organization
+  // Group by month
   const eventsByMonth = sortedEvents.reduce(
     (acc, event) => {
-      const monthKey = event.date.toLocaleDateString("en-US", { year: "numeric", month: "long" })
-      if (!acc[monthKey]) {
-        acc[monthKey] = []
-      }
+      const monthKey = event.date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+      })
+      if (!acc[monthKey]) acc[monthKey] = []
       acc[monthKey].push(event)
       return acc
     },
-    {} as Record<string, CalendarEvent[]>,
+    {} as Record<string, CalendarEvent[]>
   )
 
   const getEventStatus = (event: CalendarEvent) => {
@@ -110,7 +111,12 @@ export function ListView({ events }: ListViewProps) {
             </Select>
 
             {/* Sort By */}
-            <Select value={sortBy} onValueChange={(value) => setSortBy(value as "date" | "type" | "title")}>
+            <Select
+              value={sortBy}
+              onValueChange={(value) =>
+                setSortBy(value as "date" | "type" | "title")
+              }
+            >
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
@@ -133,7 +139,9 @@ export function ListView({ events }: ListViewProps) {
       {Object.keys(eventsByMonth).length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center">
-            <p className="text-muted-foreground">No events found matching your criteria.</p>
+            <p className="text-muted-foreground">
+              No events found matching your criteria.
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -158,19 +166,27 @@ export function ListView({ events }: ListViewProps) {
                       key={event.id}
                       className="flex items-start justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
                     >
-                      <div className="flex items-start gap-4 flex-1">
+                      <div className="flex items-start gap-4 flex-1 min-w-0">
                         {/* Event Icon */}
-                        <div className="text-2xl mt-1">{getEventTypeIcon(event.type)}</div>
+                        <div className="text-2xl mt-1">
+                          {getEventTypeIcon(event.type)}
+                        </div>
 
                         {/* Event Details */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-medium text-foreground truncate">{event.title}</h3>
-                            <Badge className={getEventTypeColor(event.type)}>{event.type}</Badge>
+                          <div className="flex items-center gap-2 mb-1 min-w-0">
+                            <h3 className="font-medium text-foreground truncate">
+                              {event.title}
+                            </h3>
+                            <Badge className={getEventTypeColor(event.type)}>
+                              {event.type}
+                            </Badge>
                           </div>
 
                           {event.description && (
-                            <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{event.description}</p>
+                            <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                              {event.description}
+                            </p>
                           )}
 
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -213,7 +229,9 @@ export function ListView({ events }: ListViewProps) {
               <div className="text-sm text-muted-foreground">Assignments</div>
             </div>
             <div className="text-center p-3 border border-border rounded-lg">
-              <div className="text-2xl font-bold text-foreground">{events.filter((e) => e.type === "exam").length}</div>
+              <div className="text-2xl font-bold text-foreground">
+                {events.filter((e) => e.type === "exam").length}
+              </div>
               <div className="text-sm text-muted-foreground">Exams</div>
             </div>
             <div className="text-center p-3 border border-border rounded-lg">
