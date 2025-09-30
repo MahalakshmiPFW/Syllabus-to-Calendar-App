@@ -4,11 +4,11 @@ A modern web application that automatically converts course syllabi into organiz
 
 ## 🚀 Features
 
-- **AI-Powered Text Parsing**: Uses **Google Gemini** to intelligently extract tasks from text files
-- **File Upload**: Support for text files (AI-powered) and PDF files (mock data)
-- **Smart Classification**: Automatically categorizes assignments, readings, exams, and other tasks
+- **AI-Powered Extraction**: Uses **Google Gemini 2.0 Flash** to intelligently extract tasks from both text and PDF files
+- **Multi-Format Support**: Full AI integration for both text (.txt) and PDF (.pdf) files
+- **Smart Date Detection**: Automatically identifies semester/term (Fall, Spring, Summer) and assigns correct years and months
+- **Intelligent Classification**: Automatically categorizes assignments, readings, exams, and other tasks
 - **Dual Views**: Switch between calendar and list views
-- **Task Management**: Edit, delete, and mark tasks as complete
 - **Google Calendar Sync**: Optional integration with Google Calendar
 - **Responsive Design**: Works seamlessly on desktop and mobile devices
 - **Modern UI**: Clean, educational-focused design with accessibility features
@@ -17,10 +17,8 @@ A modern web application that automatically converts course syllabi into organiz
 
 - **Frontend**: Next.js 15, React 19, TypeScript  
 - **Backend**: Node.js runtime with Next.js API routes  
-- **AI Integration**: Google Gemini API for syllabus parsing  
-- **File Processing**: pdf-parse for PDF text extraction  
+- **AI Integration**: Google Gemini 2.0 Flash API for syllabus parsing  
 - **Styling**: Tailwind CSS v4, shadcn/ui components  
-- **File Handling**: react-dropzone for drag-and-drop uploads  
 - **Calendar Integration**: Google Calendar API (simulated)  
 
 ## 📋 Prerequisites
@@ -73,7 +71,7 @@ npm run build
 npm start
 ```
 
-## 📁 Current File Support
+## 📁 File Support
 
 ### Text Files (.txt)
 - ✅ **Full AI Integration**: Uses Google Gemini for intelligent parsing and task extraction
@@ -81,46 +79,55 @@ npm start
 - ✅ **Smart Classification**: AI categorizes and extracts meaningful information
 
 ### PDF Files (.pdf)
-- ⚠️ **Mock Data**: Currently displays sample tasks for demonstration purposes
-- 🔮 **Future Enhancement**: PDF parsing with AI extraction planned for future releases
+- ✅ **Full AI Integration**: Direct PDF-to-AI processing using Gemini's native PDF support
+- ✅ **Real Data**: Extracts actual text and dates from PDF syllabi
+- ✅ **Semester-Aware**: Automatically detects academic term (Fall/Spring/Summer) and assigns correct dates
 
 ## 📖 Usage
 
 1. **Upload Syllabus**
-   - Text files: Drag and drop or click to upload for full AI processing
-   - PDF files: Upload to see mock data demonstration
+   - Drag and drop or click to upload text or PDF files
+   - Supports both formats with full AI processing
 
 2. **AI Processing**
-   - Click "Parse Syllabus with AI" to extract tasks and dates using Gemini (text files only)
+   - Text files: Direct text extraction and AI analysis
+   - PDF files: Native PDF reading with AI-powered event extraction
 
 3. **View Tasks**
    - Switch between calendar view and list view to see your schedule
+   - Events are automatically categorized and dated correctly
 
-4. **Manage Tasks**
-   - Edit, delete, or mark tasks as complete
-
-5. **Sync Calendar**
+4. **Sync Calendar**
    - Optionally connect to Google Calendar for cross-device synchronization
 
 ## 🧠 Approach
 
-### AI-Powered Processing (Text Files)
+### AI-Powered Processing
 
-The application uses Google Gemini for intelligent syllabus parsing:
+The application uses Google Gemini 2.0 Flash for intelligent syllabus parsing:
 
-- **Direct Text Processing**: Reads text files directly for AI analysis
-- **AI Analysis**: Gemini understands context and extracts meaningful task information
-- **Smart Classification**: AI categorizes tasks as assignments, readings, exams, or other
-- **Date Normalization**: Converts various date formats to consistent YYYY-MM-DD format
+- **Multi-Format Support**: Processes both text and PDF files natively
+- **Semester Detection**: Identifies academic term (Fall 2024, Spring 2025, etc.) from document headers
+- **Smart Date Mapping**: 
+  - Fall semester: August to December
+  - Spring semester: January to May
+  - Summer semester: June to August
+- **Context-Aware Extraction**: Understands syllabus structure and extracts relevant dates
+- **Intelligent Classification**: Categorizes events as assignments, exams, readings, or other activities
 
 ### File Processing Pipeline
 
 1. **File Upload**: Multi-format support with drag-and-drop interface
-2. **Processing Branch**:
-   - Text Files: Direct AI processing with Gemini API
-   - PDF Files: Mock data generation for demonstration
-3. **Data Transformation**: Convert AI response to application task format
-4. **Error Handling**: Graceful fallbacks and user-friendly error messages
+2. **Processing**:
+   - **Text Files**: Direct text extraction and AI analysis
+   - **PDF Files**: Base64 encoding and direct PDF processing via Gemini API
+3. **AI Analysis**: 
+   - Step 1: Identify semester and year from document
+   - Step 2: Determine appropriate date range for the semester
+   - Step 3: Extract events with contextually accurate dates
+   - Step 4: Format output as structured JSON
+4. **Data Transformation**: Convert AI response to application task format with timezone correction
+5. **Error Handling**: Graceful fallbacks and user-friendly error messages
 
 ### Task Classification
 
@@ -137,6 +144,7 @@ AI-powered categorization identifies:
 - **Responsive Design**: Mobile-first approach with desktop enhancements
 - **Accessibility**: ARIA labels, keyboard navigation, screen reader support
 - **Real-time Feedback**: Progress indicators during AI processing
+- **Accurate Dates**: Timezone-aware date handling ensures correct display
 
 ## 🔑 Environment Variables
 
@@ -150,6 +158,7 @@ Add this to your `.env.local` file or configure it in your deployment platform (
 
 ## 🚧 Future Enhancements
 
+- [ ] **PDF Text Extraction**: Add fallback PDF parsing for scanned documents
 - [ ] **Multiple AI Models**: Support for different LLMs (Claude, OpenAI, etc.)
 - [ ] **Batch Processing**: Handle multiple syllabi simultaneously
 - [ ] **Custom Prompts**: Allow users to customize AI parsing instructions
@@ -157,6 +166,7 @@ Add this to your `.env.local` file or configure it in your deployment platform (
 - [ ] **Collaboration Features**: Share schedules with classmates
 - [ ] **Mobile App**: React Native version for mobile devices
 - [ ] **Notification System**: Reminders for upcoming deadlines
+- [ ] **Task Management**: Edit, delete, and mark tasks as complete
 
 ## 🤝 Contributing
 
@@ -176,15 +186,17 @@ This project was created for evaluation based on the following criteria:
 
 ### Judging Criteria
 
-- **Creativity**: AI-powered syllabus parsing with intelligent task categorization
-- **Code Quality**: Clean TypeScript implementation with proper error handling and documentation
-- **Usability and Design**: Responsive, accessible interface with dual calendar/list views
-- **Impact**: Streamlines academic workflow by automating syllabus organization
+- **Creativity**: AI-powered syllabus parsing with semester-aware date detection and intelligent task categorization
+- **Code Quality**: Clean TypeScript implementation with proper error handling, timezone management, and comprehensive documentation
+- **Usability and Design**: Responsive, accessible interface with dual calendar/list views and real-time AI processing
+- **Impact**: Streamlines academic workflow by automating syllabus organization with accurate date extraction
 
 ### Key Innovations
 
-- **AI Integration**: Uses Google Gemini for context-aware syllabus parsing instead of basic regex
-- **Smart Classification**: Automatically categorizes assignments, readings, and exams
+- **Native PDF Processing**: Direct PDF-to-AI pipeline using Gemini's native PDF support, eliminating need for intermediate parsing
+- **Semester-Aware Dating**: Automatically detects academic term and assigns dates within appropriate timeframe
+- **Context Understanding**: AI reads document structure to extract accurate years, months, and event details
+- **Smart Classification**: Automatically categorizes assignments, readings, and exams with context awareness
 - **Dual Interface**: Provides both visual calendar and filterable list views
 - **Progressive Enhancement**: Graceful fallbacks and comprehensive error handling
 
