@@ -35,7 +35,7 @@ A modern web application that automatically converts course syllabi into organiz
 
 ```bash
 git clone <repository-url>
-cd courseflow
+cd Syllabus-to-Calendar-App
 ```
 
 ### 2. Install dependencies
@@ -51,7 +51,7 @@ yarn install
 Create a `.env.local` file in the root directory:
 
 ```env
-GEMINI_API_KEY=your_gemini_api_key_here
+GOOGLE_API_KEY=your_google_api_key_here
 ```
 
 ### 4. Run the development server
@@ -144,7 +144,7 @@ The application requires the following environment variable:
 
 | Variable | Description |
 |----------|-------------|
-| `GEMINI_API_KEY` | Your Google Gemini API key |
+| `GOOGLE_API_KEY` | Your Google Gemini API key |
 
 Add this to your `.env.local` file or configure it in your deployment platform (Vercel, etc.).
 
