@@ -10,6 +10,7 @@
 
 import { type NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI } from "@google/generative-ai"
+import { generateContentWithRetry, friendlyGeminiErrorMessage } from "@/lib/gemini-retry"
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,17 +33,18 @@ export async function POST(request: NextRequest) {
     const base64 = Buffer.from(arrayBuffer).toString('base64')
 
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY)
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" })
 
-    const result = await model.generateContent([
-      {
-        inlineData: {
-          mimeType: "application/pdf",
-          data: base64
-        }
-      },
-      {
-        text: `You are extracting calendar events from a syllabus PDF.
+    const result = await generateContentWithRetry(() =>
+      model.generateContent([
+        {
+          inlineData: {
+            mimeType: "application/pdf",
+            data: base64
+          }
+        },
+        {
+          text: `You are extracting calendar events from a syllabus PDF.
 
 STEP 1 - IDENTIFY THE SEMESTER AND YEAR:
 Look at the very beginning of the document for the semester/term and year (e.g., "Fall 2024", "Spring 2025", "Summer 2024").
@@ -84,8 +86,9 @@ CRITICAL RULES:
 - Return ONLY the JSON array, no other text or explanation
 
 Example: If the syllabus says "Fall 2024" at the top and mentions "Midterm in Week 7", estimate it would be around mid-October 2024, not February or any other incorrect month.`
-      }
-    ])
+        }
+      ])
+    )
 
     const aiResponse = result.response.text().trim()
     console.log("Gemini response:", aiResponse.substring(0, 500))
@@ -127,9 +130,7 @@ Example: If the syllabus says "Fall 2024" at the top and mentions "Midterm in We
     return NextResponse.json({ events: formattedEvents })
   } catch (error) {
     console.error("Error processing PDF:", error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to process PDF" },
-      { status: 500 }
-    )
+    const { message, status } = friendlyGeminiErrorMessage(error)
+    return NextResponse.json({ error: message }, { status })
   }
 }

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI } from "@google/generative-ai"
+import { generateContentWithRetry, friendlyGeminiErrorMessage } from "@/lib/gemini-retry"
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
 
     // Initialize Gemini client
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY)
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" }) 
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }) 
     // 👆 you can also use gemini-1.5-pro if you want higher quality
 
     // Send the prompt
@@ -49,7 +50,7 @@ ${text}
 
 Return only the JSON array, no other text.`
 
-    const result = await model.generateContent(prompt)
+    const result = await generateContentWithRetry(() => model.generateContent(prompt))
 
     // Gemini’s text output
     const aiResponse = result.response.text().trim()
@@ -86,6 +87,7 @@ Return only the JSON array, no other text.`
     return NextResponse.json({ events: formattedEvents })
   } catch (error) {
     console.error("Error processing text:", error)
-    return NextResponse.json({ error: "Failed to process text" }, { status: 500 })
+    const { message, status } = friendlyGeminiErrorMessage(error)
+    return NextResponse.json({ error: message }, { status })
   }
 }
