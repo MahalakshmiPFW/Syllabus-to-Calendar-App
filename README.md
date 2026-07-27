@@ -1,6 +1,26 @@
 # SyllabusSync - A Syllabus to Calendar App
 
-A modern web application that automatically converts course syllabi into organized calendar tasks using AI-powered parsing. Upload your syllabus and instantly get assignments, readings, and exams organized in both calendar and list views, with optional Google Calendar synchronization.
+**[Live Demo](https://syllabus-to-calendar-app.vercel.app/)** · **[Source](https://github.com/MahalakshmiPFW/Syllabus-to-Calendar-App)**
+
+A web app that automatically converts course syllabi into organized calendar tasks using AI-powered parsing. Upload a syllabus (PDF or text) and instantly get assignments, readings, and exams organized in both calendar and list views, editable, and exportable to any calendar app.
+
+## 🎯 Product Thinking
+
+**The problem:** Every semester, students get syllabi listing assignments, readings, and exam dates buried inside dense PDFs — then manually retype each date into whatever calendar they actually use. It's tedious and error-prone, and the cost of a missed date (a forgotten paper, an unstudied exam) is high.
+
+**Who it's for:** Students who already live in a calendar app (Google Calendar, Outlook, Apple Calendar) and just want their syllabus dates to show up there without re-typing them.
+
+**Key product decisions and why:**
+- **Calendar + list view, not just one** — a calendar is better for "what's happening this week," a list is better for scanning and searching everything at once (e.g. "show me every exam"). Different tasks call for different views, so I built both instead of picking one.
+- **Export via `.ics` + Google Calendar links instead of full OAuth sync** — this covers the three major calendar providers (Google, Outlook, Apple) with a fraction of the integration complexity of a full write-access OAuth flow. Given the audience is students who each use different calendar apps, breadth of compatibility mattered more than a deeper integration with only one provider.
+- **Editable AI output, not a black box** — AI date extraction is good but not perfect, especially on inconsistently formatted syllabi. Rather than assume the AI gets it right, the app lets you correct, complete, or remove any extracted event before it goes anywhere.
+
+**What I'd prioritize next, in order:**
+1. Direct Google Calendar OAuth write access (true one-click bulk sync, no manual per-event confirmation)
+2. Batch upload for students with multiple courses per semester
+3. Reminder notifications ahead of deadlines
+
+I'd sequence it this way because OAuth sync removes the last manual step in the core flow, batch upload matches how students actually use the tool (one syllabus per class, several classes per semester), and reminders are a nice-to-have layered on top of a working core.
 
 ## 🚀 Features
 
@@ -9,7 +29,8 @@ A modern web application that automatically converts course syllabi into organiz
 - **Smart Date Detection**: Automatically identifies semester/term (Fall, Spring, Summer) and assigns correct years and months
 - **Intelligent Classification**: Automatically categorizes assignments, readings, exams, and other tasks
 - **Dual Views**: Switch between calendar and list views
-- **Google Calendar Sync**: Optional integration with Google Calendar
+- **Task Management**: Edit any AI-extracted event, mark it complete, or delete it — useful since AI extraction isn't always perfect
+- **Calendar Export**: Export events to Google Calendar (one click per event, via quick-add links) or download a standard `.ics` file that imports into Google Calendar, Outlook, or Apple Calendar
 - **Responsive Design**: Works seamlessly on desktop and mobile devices
 - **Modern UI**: Clean, educational-focused design with accessibility features
 
@@ -19,7 +40,7 @@ A modern web application that automatically converts course syllabi into organiz
 - **Backend**: Node.js runtime with Next.js API routes  
 - **AI Integration**: Google Gemini 2.0 Flash API for syllabus parsing  
 - **Styling**: Tailwind CSS v4, shadcn/ui components  
-- **Calendar Integration**: Google Calendar API (simulated)  
+- **Calendar Export**: iCalendar (`.ics`) file generation + Google Calendar quick-add links  
 
 ## 📋 Prerequisites
 
@@ -83,122 +104,20 @@ npm start
 - ✅ **Real Data**: Extracts actual text and dates from PDF syllabi
 - ✅ **Semester-Aware**: Automatically detects academic term (Fall/Spring/Summer) and assigns correct dates
 
-## 📖 Usage
-
-1. **Upload Syllabus**
-   - Drag and drop or click to upload text or PDF files
-   - Supports both formats with full AI processing
-
-2. **AI Processing**
-   - Text files: Direct text extraction and AI analysis
-   - PDF files: Native PDF reading with AI-powered event extraction
-
-3. **View Tasks**
-   - Switch between calendar view and list view to see your schedule
-   - Events are automatically categorized and dated correctly
-
-4. **Sync Calendar**
-   - Optionally connect to Google Calendar for cross-device synchronization
-
-## 🧠 Approach
-
-### AI-Powered Processing
-
-The application uses Google Gemini 2.0 Flash for intelligent syllabus parsing:
-
-- **Multi-Format Support**: Processes both text and PDF files natively
-- **Semester Detection**: Identifies academic term (Fall 2024, Spring 2025, etc.) from document headers
-- **Smart Date Mapping**: 
-  - Fall semester: August to December
-  - Spring semester: January to May
-  - Summer semester: June to August
-- **Context-Aware Extraction**: Understands syllabus structure and extracts relevant dates
-- **Intelligent Classification**: Categorizes events as assignments, exams, readings, or other activities
-
-### File Processing Pipeline
-
-1. **File Upload**: Multi-format support with drag-and-drop interface
-2. **Processing**:
-   - **Text Files**: Direct text extraction and AI analysis
-   - **PDF Files**: Base64 encoding and direct PDF processing via Gemini API
-3. **AI Analysis**: 
-   - Step 1: Identify semester and year from document
-   - Step 2: Determine appropriate date range for the semester
-   - Step 3: Extract events with contextually accurate dates
-   - Step 4: Format output as structured JSON
-4. **Data Transformation**: Convert AI response to application task format with timezone correction
-5. **Error Handling**: Graceful fallbacks and user-friendly error messages
-
-### Task Classification
-
-AI-powered categorization identifies:
-
-- **Assignments**: homework, projects, papers, essays, reports
-- **Readings**: textbook chapters, articles, research papers
-- **Exams**: tests, quizzes, midterms, finals, assessments
-- **Other**: miscellaneous course activities and deadlines
-
-### User Experience
-
-- **Progressive Enhancement**: Works without JavaScript for basic functionality
-- **Responsive Design**: Mobile-first approach with desktop enhancements
-- **Accessibility**: ARIA labels, keyboard navigation, screen reader support
-- **Real-time Feedback**: Progress indicators during AI processing
-- **Accurate Dates**: Timezone-aware date handling ensures correct display
-
-## 🔑 Environment Variables
-
-The application requires the following environment variable:
-
-| Variable | Description |
-|----------|-------------|
-| `GOOGLE_API_KEY` | Your Google Gemini API key |
-
-Add this to your `.env.local` file or configure it in your deployment platform (Vercel, etc.).
-
 ## 🚧 Future Enhancements
 
 - [ ] **PDF Text Extraction**: Add fallback PDF parsing for scanned documents
 - [ ] **Multiple AI Models**: Support for different LLMs (Claude, OpenAI, etc.)
 - [ ] **Batch Processing**: Handle multiple syllabi simultaneously
 - [ ] **Custom Prompts**: Allow users to customize AI parsing instructions
-- [ ] **Multiple Calendar Support**: Add support for Outlook, Apple Calendar
 - [ ] **Collaboration Features**: Share schedules with classmates
 - [ ] **Mobile App**: React Native version for mobile devices
 - [ ] **Notification System**: Reminders for upcoming deadlines
-- [ ] **Task Management**: Edit, delete, and mark tasks as complete
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+- [ ] **Google Calendar OAuth**: Direct write access instead of quick-add links, for true one-click bulk sync
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 📊 Submission Information
-
-This project was created for evaluation based on the following criteria:
-
-### Judging Criteria
-
-- **Creativity**: AI-powered syllabus parsing with semester-aware date detection and intelligent task categorization
-- **Code Quality**: Clean TypeScript implementation with proper error handling, timezone management, and comprehensive documentation
-- **Usability and Design**: Responsive, accessible interface with dual calendar/list views and real-time AI processing
-- **Impact**: Streamlines academic workflow by automating syllabus organization with accurate date extraction
-
-### Key Innovations
-
-- **Native PDF Processing**: Direct PDF-to-AI pipeline using Gemini's native PDF support, eliminating need for intermediate parsing
-- **Semester-Aware Dating**: Automatically detects academic term and assigns dates within appropriate timeframe
-- **Context Understanding**: AI reads document structure to extract accurate years, months, and event details
-- **Smart Classification**: Automatically categorizes assignments, readings, and exams with context awareness
-- **Dual Interface**: Provides both visual calendar and filterable list views
-- **Progressive Enhancement**: Graceful fallbacks and comprehensive error handling
 
 ---
 

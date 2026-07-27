@@ -5,18 +5,45 @@ import type { CalendarEvent } from "@/app/page"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Filter, Calendar, Clock } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Search, Filter, Calendar, Clock, Pencil, Trash2 } from "lucide-react"
 import { formatDate, getRelativeDate, getEventTypeColor, getEventTypeIcon } from "@/lib/text-processor"
 
 interface ListViewProps {
   events: CalendarEvent[]
+  onUpdateEvent: (event: CalendarEvent) => void
+  onDeleteEvent: (eventId: string) => void
+  onToggleComplete: (eventId: string) => void
 }
 
-export function ListView({ events }: ListViewProps) {
+export function ListView({ events, onUpdateEvent, onDeleteEvent, onToggleComplete }: ListViewProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState<string>("all")
   const [sortBy, setSortBy] = useState<"date" | "type" | "title">("date")
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null)
 
   // Filter events
   const filteredEvents = events.filter((event) => {
@@ -164,9 +191,19 @@ export function ListView({ events }: ListViewProps) {
                   return (
                     <div
                       key={event.id}
-                      className="flex items-start justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                      className={`flex items-start justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors ${
+                        event.completed ? "opacity-60" : ""
+                      }`}
                     >
-                      <div className="flex items-start gap-4 flex-1 min-w-0">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        {/* Completion Checkbox */}
+                        <Checkbox
+                          checked={!!event.completed}
+                          onCheckedChange={() => onToggleComplete(event.id)}
+                          className="mt-1.5"
+                          aria-label={`Mark ${event.title} as ${event.completed ? "incomplete" : "complete"}`}
+                        />
+
                         {/* Event Icon */}
                         <div className="text-2xl mt-1">
                           {getEventTypeIcon(event.type)}
@@ -175,7 +212,11 @@ export function ListView({ events }: ListViewProps) {
                         {/* Event Details */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 min-w-0">
-                            <h3 className="font-medium text-foreground truncate">
+                            <h3
+                              className={`font-medium text-foreground truncate ${
+                                event.completed ? "line-through" : ""
+                              }`}
+                            >
                               {event.title}
                             </h3>
                             <Badge className={getEventTypeColor(event.type)}>
@@ -202,9 +243,45 @@ export function ListView({ events }: ListViewProps) {
                         </div>
                       </div>
 
-                      {/* Status Badge */}
-                      <div className="ml-4">
+                      {/* Status Badge + Actions */}
+                      <div className="ml-4 flex items-start gap-2">
                         <Badge className={status.color}>{status.label}</Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setEditingEvent(event)}
+                          aria-label={`Edit ${event.title}`}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              aria-label={`Delete ${event.title}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete this event?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently remove "{event.title}" from your calendar. This
+                                can't be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => onDeleteEvent(event.id)}>
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   )
@@ -249,6 +326,114 @@ export function ListView({ events }: ListViewProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Edit Event Dialog */}
+      <Dialog open={!!editingEvent} onOpenChange={(open) => !open && setEditingEvent(null)}>
+        <DialogContent>
+          {editingEvent && (
+            <EditEventForm
+              event={editingEvent}
+              onSave={(updated) => {
+                onUpdateEvent(updated)
+                setEditingEvent(null)
+              }}
+              onCancel={() => setEditingEvent(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
+  )
+}
+
+interface EditEventFormProps {
+  event: CalendarEvent
+  onSave: (event: CalendarEvent) => void
+  onCancel: () => void
+}
+
+function EditEventForm({ event, onSave, onCancel }: EditEventFormProps) {
+  const [title, setTitle] = useState(event.title)
+  const [type, setType] = useState<CalendarEvent["type"]>(event.type)
+  const [description, setDescription] = useState(event.description || "")
+  // datetime-local expects "YYYY-MM-DDTHH:mm" in local time
+  const toLocalInputValue = (date: Date) => {
+    const offset = date.getTimezoneOffset()
+    const local = new Date(date.getTime() - offset * 60 * 1000)
+    return local.toISOString().slice(0, 16)
+  }
+  const [dateValue, setDateValue] = useState(toLocalInputValue(new Date(event.date)))
+
+  const handleSave = () => {
+    if (!title.trim()) return
+    onSave({
+      ...event,
+      title: title.trim(),
+      type,
+      description: description.trim() || undefined,
+      date: new Date(dateValue),
+    })
+  }
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Edit Event</DialogTitle>
+        <DialogDescription>
+          Update the details below. This is handy when the AI extraction gets a date or title slightly wrong.
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="space-y-4 py-2">
+        <div className="space-y-2">
+          <Label htmlFor="edit-title">Title</Label>
+          <Input id="edit-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="edit-date">Date & time</Label>
+          <Input
+            id="edit-date"
+            type="datetime-local"
+            value={dateValue}
+            onChange={(e) => setDateValue(e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="edit-type">Type</Label>
+          <Select value={type} onValueChange={(v) => setType(v as CalendarEvent["type"])}>
+            <SelectTrigger id="edit-type">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="assignment">Assignment</SelectItem>
+              <SelectItem value="exam">Exam</SelectItem>
+              <SelectItem value="reading">Reading</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="edit-description">Description (optional)</Label>
+          <Textarea
+            id="edit-description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+          />
+        </div>
+      </div>
+
+      <DialogFooter>
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button onClick={handleSave} disabled={!title.trim()}>
+          Save Changes
+        </Button>
+      </DialogFooter>
+    </>
   )
 }

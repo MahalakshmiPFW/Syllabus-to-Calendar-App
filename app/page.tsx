@@ -15,6 +15,7 @@ export interface CalendarEvent {
   date: Date
   type: "assignment" | "exam" | "reading" | "other"
   description?: string
+  completed?: boolean
 }
 
 export default function Home() {
@@ -32,6 +33,20 @@ export default function Home() {
   const resetApp = () => {
     setEvents([])
     setView("upload")
+  }
+
+  const updateEvent = (updatedEvent: CalendarEvent) => {
+    setEvents((prev) => prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e)))
+  }
+
+  const deleteEvent = (eventId: string) => {
+    setEvents((prev) => prev.filter((e) => e.id !== eventId))
+  }
+
+  const toggleEventComplete = (eventId: string) => {
+    setEvents((prev) =>
+      prev.map((e) => (e.id === eventId ? { ...e, completed: !e.completed } : e)),
+    )
   }
 
   return (
@@ -117,7 +132,14 @@ export default function Home() {
             </div>
 
             {view === "calendar" && <CalendarView events={events} />}
-            {view === "list" && <ListView events={events} />}
+            {view === "list" && (
+              <ListView
+                events={events}
+                onUpdateEvent={updateEvent}
+                onDeleteEvent={deleteEvent}
+                onToggleComplete={toggleEventComplete}
+              />
+            )}
             {view === "export" && <GoogleCalendarSync events={events} />}
           </div>
         )}
